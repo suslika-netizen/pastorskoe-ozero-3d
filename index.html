@@ -1234,20 +1234,16 @@ const P_ = {
 };
 const CLOTH = [0xf2efe9, 0xd9c7ad, 0xb08d6a, 0x8d8f93, 0x2f3542, 0xe6d3cf, 0x4a4643, 0xc9d2d6, 0x6f7f6a, 0xfaf8f4, 0x9a7b62, 0x1f1f22].map(c => mat(c, { roughness: 1 }));
 // состав секций по месту: 0 — длинные вещи и обувь, 1 — две штанги, 2 — штанга и ящики
-const WKIND = { '6740,13860': [0, 2, 1], '9390,15355': [1] };
+const WKIND = { '6740,13860': [0, 2, 1], '9390,15355': [2] };
 function wardrobe(x0, y0, x1, y1, f, doors, h, lowEnd) {
   const L = local(x0, y0, x1, y1, f), W = (f === 'N' || f === 'S') ? x1 - x0 : y1 - y0, D = (f === 'N' || f === 'S') ? y1 - y0 : x1 - x0;
   const R = (a0, b0, a1, b1) => L(a0 / W, b0 / D, a1 / W, b1 / D);     // мм вдоль фронта / вглубь от фронта
   if (doors) {   // распашной шкаф: фасады в тонком профиле, длинные вертикальные ручки, центральная створка — зеркало
     box(...R(0, 22, W, D), 0, h, P_.side); box(...R(0, 40, W, D), 0, 70, P_.plinth);
-    const w = W / doors, mid = doors % 2 && doors >= 3 ? (doors - 1) / 2 : -1;
+    const w = W / doors, dz = doors >= 3 ? 716 : 70;   // трёхстворчатый: внизу два ряда ящиков по ширине створок, швы ящиков продолжают швы дверей
     for (let i = 0; i < doors; i++) {
-      box(...R(i * w + 3, 0, (i + 1) * w - 3, 22), 70, h - 12, i === mid ? P_.bronze : P_.lacq);
-      if (i === mid) continue;
-      let right;   // ручка у кромки, обращённой к центру пары / к зеркалу
-      if (mid >= 0) right = i < mid ? (mid - 1 - i) % 2 === 0 : (i - mid - 1) % 2 === 1; else right = i % 2 === 0;
-      const u = right ? (i + 1) * w - 28 : i * w + 28;
-
+      box(...R(i * w + 3, 0, (i + 1) * w - 3, 22), dz, h - 12, P_.lacq);
+      if (doors >= 3) for (const z of [70, 393]) box(...R(i * w + 3, 0, (i + 1) * w - 3, 22), z, z + 317, P_.lacq);
     }
     return;
   }
@@ -1377,7 +1373,7 @@ for (let i = 0; i < 4; i++) { const yc = 5467 + 2989 * (i + .5) / 4; chair(6275,
 chair(6985, 8616, 'S'); chair(6985, 5307, 'N');
 // гостиная (положение 12.11)
 const DX = 650, DY = 50;
-rbox(2259, 4774, 4545, 6527, 0, 12, 40, rugM);
+rbox(1800, 4100, 4400, 6900, 0, 12, 60, rugM);
 function sofaBlock(x0, y0, x1, y1) { rbox(x0, y0, x1, y1, 80, 420, 60, fabric2); }
 sofaBlock(3347 + DX, 4451 + DY, 4547 + DX, 6570 + DY); sofaBlock(2160 + DX, 6570 + DY, 4547 + DX, 7770 + DY);
 rbox(4327 + DX, 4451 + DY, 4547 + DX, 7770 + DY, 80, 780, 60, fabric2);           // спинка вдоль длинной части
@@ -1386,11 +1382,19 @@ rbox(3347 + DX, 4451 + DY, 4327 + DX, 4651 + DY, 80, 620, 60, fabric2);         
 rbox(2160 + DX, 6570 + DY, 2360 + DX, 7550 + DY, 80, 620, 60, fabric2);
 for (const [x0, y0, x1, y1] of [[3367, 4671, 4307, 5600], [3367, 5620, 4307, 6550], [2380, 6590, 3360, 7530], [3380, 6590, 4307, 7530]])
   rbox(x0 + DX, y0 + DY, x1 + DX, y1 + DY, 420, 560, 120, fabric);
-rbox(1609 + 750, 5213 + 50, 2795 + 750, 6288 + 50, 300, 350, 420, traver); rbox(1609 + 1000, 5213 + 300, 2795 + 500, 6288 - 200, 0, 300, 300, traver);     // Koishi
-// кресло Le Club: отодвинуто от стены и развёрнуто к дивану
-{ const AX = 250, AY = 520, cx = 2088 + AX, cy = 4481 + AY, g = new THREE.Group(); g.position.set(M(cx), 0, -M(cy));
-  for (const m of [rbox(1609 + AX, 4028 + AY, 2566 + AX, 4934 + AY, 60, 420, 300, leather), rbox(1609 + AX, 4028 + AY, 2566 + AX, 4280 + AY, 60, 720, 120, leather), rbox(1730 + AX, 4300 + AY, 2445 + AX, 4880 + AY, 420, 520, 160, fabric)]) { scene.remove(m); m.position.x -= M(cx); m.position.z += M(cy); g.add(m); }
-  g.rotation.y = -0.5; scene.add(g); }
+{ const peb = (sx, sy, z0, z1, m, bv) => { const P = [[1, .05], [.82, .62], [.3, 1], [-.45, .9], [-1, .35], [-.9, -.45], [-.3, -1], [.5, -.88]].map(p => new THREE.Vector2(M(p[0] * sx), M(p[1] * sy)));
+    const sh = new THREE.Shape(new THREE.SplineCurve(P.concat([P[0]])).getPoints(80)); const g = new THREE.ExtrudeGeometry(sh, { depth: M(z1 - z0) - 2 * bv, bevelEnabled: bv > 0, bevelSize: bv, bevelThickness: bv, bevelSegments: 4, curveSegments: 40 });
+    g.rotateX(-Math.PI / 2); const me = new THREE.Mesh(g, m); me.position.set(M(2952), M(z0) + bv, -M(5830)); me.rotation.y = .5; me.castShadow = me.receiveShadow = true; scene.add(me); };
+  peb(600, 500, 270, 320, traver, .012); peb(380, 310, 0, 270, mat(0x4a423a, { roughness: .45, metalness: .35 }), 0); }     // Koishi
+// кресло Poliform Le Club: круглая чаша, толстый мягкий валик-подкова вокруг спинки и подлокотников, тонкие ножки; стоит на ковре, развёрнуто к столу и дивану
+{ const g = new THREE.Group(), R0 = .95, TL = 2 * Math.PI - 2 * R0, lea = leather.clone(); lea.side = THREE.DoubleSide;
+  const add = (geo, m, y) => { const me = new THREE.Mesh(geo, m); me.position.y = y || 0; me.castShadow = me.receiveShadow = true; g.add(me); return me; };
+  for (let k = 0; k < 4; k++) { const a = Math.PI / 4 + k * Math.PI / 2; add(new THREE.CylinderGeometry(.013, .013, .2, 8), black, .1).position.set(Math.sin(a) * .3, .1, Math.cos(a) * .3); }
+  add(new THREE.CylinderGeometry(.44, .37, .36, 48, 1, true, R0, TL), lea, .38); add(new THREE.CylinderGeometry(.37, .37, .04, 48), lea, .21);
+  const pts = []; for (let i = 0; i <= 40; i++) { const t = i / 40, a = R0 + TL * t; pts.push(new THREE.Vector3(Math.sin(a) * .40, .53 + .15 * Math.pow(Math.sin(Math.PI * t), 1.5), Math.cos(a) * .40)); }
+  add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 60, .115, 14, false), lea); for (const p of [pts[0], pts[40]]) add(new THREE.SphereGeometry(.115, 14, 10), lea).position.copy(p);
+  const seat = add(new THREE.SphereGeometry(1, 32, 16), fabric, .40); seat.scale.set(.36, .085, .37); seat.position.z = .03;
+  g.position.set(M(2300), 0, -M(4640)); g.rotation.y = Math.atan2(652, -1190); scene.add(g); }
 // ТВ-зона: витрина 2 створки по 400 с реечными боковинами, парящая тумба (глубина 300) с подсветкой, панели кашемир, реечная вертикаль в конце
 const D0 = 3960, SL = 115, DW = 400, VA = D0 + SL, VB = VA + 2 * DW, VE = VB + SL, C0 = VE + 3, TVW = 1450, C1 = C0 + TVW + 140, TC = (C0 + C1) / 2, CD = 690, G0 = 600, G1 = 2050;
 box(390, C0, 415, C1, 0, KH, cash); for (let i = 1; i < 3; i++) box(414, C0 + (C1 - C0) * i / 3 - 2, 418, C0 + (C1 - C0) * i / 3 + 2, 0, KH, frameD);
@@ -1483,21 +1487,31 @@ function starBase(g, R, h) {
 const CX = 15790, CY = 11210, FACE_ROT = -3 * Math.PI / 4;   // смотрит в комнату по диагонали
 const armchair = new THREE.Group();
 starBase(armchair, 760, 380);
-lbox(armchair, -415, -430, 415, 430, 360, 520, 180, shellM);          // оболочка-чаша
-lbox(armchair, -300, -170, 300, 400, 500, 610, 120, cognac);          // сиденье
-lbox(armchair, -415, -430, 415, -250, 360, 1100, 120, shellM);        // спинка снаружи
-lbox(armchair, -330, -330, 330, -170, 560, 1060, 120, cognac);        // спинка внутри
-lbox(armchair, -330, -300, 330, -150, 860, 1080, 110, cognac);        // подголовник
-for (const s of [-1, 1]) {
-  lbox(armchair, s > 0 ? 300 : -415, -400, s > 0 ? 415 : -300, 330, 360, 720, 70, shellM);   // боковины
-  lbox(armchair, s > 0 ? 280 : -390, -330, s > 0 ? 390 : -280, 280, 560, 730, 60, cognac);   // подлокотники
-  lbox(armchair, s > 0 ? 250 : -415, -430, s > 0 ? 415 : -250, -280, 820, 1090, 90, shellM); // «уши»
-}
 armchair.position.set(M(CX), 0, -M(CY)); armchair.rotation.y = FACE_ROT; scene.add(armchair);
 const OD = 830, ottomanG = new THREE.Group();
 starBase(ottomanG, 520, 360);
-lbox(ottomanG, -300, -240, 300, 240, 340, 420, 150, shellM);
-lbox(ottomanG, -280, -220, 280, 220, 410, 470, 140, cognac);
+const ottomanParts = [lbox(ottomanG, -300, -240, 300, 240, 340, 420, 200, shellM), lbox(ottomanG, -285, -225, 285, 225, 405, 480, 200, cognac)];
+{ // кресло по референсу (Palliser): плавная чаша-оболочка, откинутая спинка с «ушами», кожа внутри, тёмная ткань снаружи
+  const cur = new THREE.CatmullRomCurve3([[430, 455], [250, 430], [20, 405], [-200, 430], [-330, 560], [-400, 760], [-450, 960], [-490, 1130]].map(p => new THREE.Vector3(0, p[1], p[0])));
+  const leaM = new THREE.MeshStandardMaterial({ color: 0x9c5a2e, roughness: .55, side: THREE.DoubleSide }), outM = new THREE.MeshStandardMaterial({ color: 0x35312e, roughness: .95, side: THREE.DoubleSide });
+  const surf = (off, m) => { const NU = 24, NV = 36, pos = [], idx = [];
+    for (let j = 0; j <= NV; j++) { const v = j / NV, p = cur.getPoint(v), t = cur.getTangent(v), ny = -t.z, nz = t.y;
+      const w = 350 + 50 * Math.sin(Math.PI * v) - 70 * Math.pow(Math.max(0, (v - .75) / .25), 2);
+      const lift = 30 + 300 * Math.sin(Math.PI * Math.min(v / .42, 1) / 2) - 170 * Math.max(0, (v - .42) / .58);
+      for (let i = 0; i <= NU; i++) { const u = -1 + 2 * i / NU, a = Math.abs(u), k = lift * Math.pow(a, 2.0) + off * (1 - .8 * a * a);
+        pos.push(M(u * w * (1 - .2 * a * a * a)), M(p.y + ny * k), M(p.z + nz * k)); } }
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) { const a = j * (NU + 1) + i, b = a + 1, c = a + NU + 1, d = c + 1; idx.push(a, b, c, b, d, c); }
+    const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); geo.setIndex(idx); geo.computeVertexNormals();
+    const me = new THREE.Mesh(geo, m); me.castShadow = me.receiveShadow = true; armchair.add(me); };
+  surf(12, leaM); surf(-60, outM);
+  { const P = (u, v) => { const p = cur.getPoint(v), t = cur.getTangent(v), a = Math.abs(u), w = 350 + 50 * Math.sin(Math.PI * v) - 70 * Math.pow(Math.max(0, (v - .75) / .25), 2),
+      k = (30 + 300 * Math.sin(Math.PI * Math.min(v / .42, 1) / 2) - 170 * Math.max(0, (v - .42) / .58)) * a * a - 20; return new THREE.Vector3(M(u * w * (1 - .2 * a * a * a)), M(p.y - t.z * k), M(p.z + t.y * k)); };
+    const rim = []; for (let i = 0; i <= 30; i++) rim.push(P(1, i / 30)); for (let i = 1; i <= 16; i++) rim.push(P(1 - 2 * i / 16, 1)); for (let i = 1; i <= 30; i++) rim.push(P(-1, 1 - i / 30)); for (let i = 1; i < 16; i++) rim.push(P(-1 + 2 * i / 16, 0));
+    const tb = new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(rim, true), 160, M(48), 10, true), leaM); tb.castShadow = true; armchair.add(tb); }   // мягкий валик по краю чаши
+  const cush = (w, d, hh, y, z, rx) => { const me = lbox(armchair, -w / 2, -d / 2, w / 2, d / 2, 0, hh, Math.min(w, d) * .42, leaM); me.position.set(0, M(y), M(z)); me.rotation.x = rx; };
+  cush(540, 520, 110, 425, 150, 0.06); cush(520, 120, 330, 505, -215, -0.36); cush(480, 110, 290, 810, -345, -0.2);
+  for (const m of ottomanParts) m.material = m === ottomanParts[0] ? outM : leaM; }
+
 ottomanG.position.set(M(CX) - Math.SQRT1_2 * M(OD), 0, -M(CY) - Math.SQRT1_2 * M(OD)); ottomanG.rotation.y = FACE_ROT; scene.add(ottomanG);
 // подкатной C-столик сбоку: основание на колёсах, стойка, поворотная столешница с ноутбуком
 const tbl = new THREE.Group(), oakT = mat(0xc9a77c, { roughness: .6 });
@@ -1530,8 +1544,8 @@ const NX0 = 6740, NX1 = 9990;
 function decoShelf(x0, y0, x1, y1) {
   const H = 2770, oak = P_.elmD, back = mat(0x57504a, { roughness: .3 }), ledM = new THREE.MeshBasicMaterial({ color: 0xffd9a0 });
   // ниша между простенками АР: по краям закрытые шкафы кашемир, в центре открытый стеллаж 1300
-  const nx0 = x0, nx1 = x1; x0 = nx0 + 1450; x1 = x0 + 1300;   // асимметрия: слева 4 створки (1450), стеллаж 1300, справа 1 створка (500)
-  cabinet2(nx0, y0, x0, y1, 'S', 4, H, 2300); cabinet2(x1, y0, nx1, y1, 'S', 1, H, 2300);
+  const nx0 = x0, nx1 = x1; x0 = nx0 + 1450; x1 = x0 + 1300;   // асимметрия: слева 3 равные створки (1450), стеллаж 1300, справа 1 створка (500)
+  cabinet2(nx0, y0, x0, y1, 'S', 3, H, 2300); cabinet2(x1, y0, nx1, y1, 'S', 1, H, 2300);
   box(x0, y1 - 20, x1, y1, 0, H, back); box(x0, y0, x1, y1, 0, 60, oak); box(x0, y0, x1, y1, H - 30, H, oak);
   const W = x1 - x0, V = [0, .27, .37, .63, .73, 1].map(t => x0 + t * W);
   for (const x of V) box(Math.min(x1 - 22, Math.max(x0, x - 11)), y0, Math.min(x1, Math.max(x0 + 22, x + 11)), y1 - 20, 60, H, oak);
@@ -1547,11 +1561,12 @@ function decoShelf(x0, y0, x1, y1) {
 }
 openCloset(12390, 11960, 12890, 13140);
 // прихожая слева: зеркало с подсветкой, перед ним консоль на тонких ножках с ящиком во всю ширину зеркала, пуф задвинут под консоль
-box(10290,13560,10302,14510,100,2400,P_.champ); box(10302,13580,10308,14490,120,2380,mirrorM);
-{ const led = new THREE.MeshBasicMaterial({ color: 0xffe2b0 }); box(10290,13535,10300,13558,100,2400,led); box(10290,14512,10300,14535,100,2400,led); }
-for (const [x,y] of [[10330,13575],[10610,13575],[10330,14495],[10610,14495]]) cyl(x,y,11,0,760,black,8);
-box(10312,13555,10632,14515,760,880,P_.elmD); box(10306,13549,10638,14521,880,896,P_.elmD); box(10632,13575,10636,14495,775,865,P_.elm);
-cyl(10470,13760,60,896,1060,P_.lacq,16); box(10400,14180,10560,14380,896,910,P_.champ);
+box(10290,13635,10302,14435,100,2400,P_.champ); box(10302,13655,10308,14415,120,2380,mirrorM);
+{ const led = new THREE.MeshBasicMaterial({ color: 0xffe2b0 }); box(10290,13608,10300,13632,100,2400,led); box(10290,14438,10300,14462,100,2400,led); }
+for (const [x,y] of [[10330,13505],[10610,13505],[10330,14565],[10610,14565]]) cyl(x,y,11,0,760,black,8);
+box(10312,13485,10632,14585,760,880,P_.elmD); box(10306,13479,10638,14591,880,896,P_.elmD);
+for (const [a,b] of [[13497,14031],[14039,14573]]) { box(10632,a,10636,b,772,868,P_.elm); box(10636,(a+b)/2-60,10640,(a+b)/2+60,812,820,black); }
+cyl(10470,13700,60,896,1060,P_.lacq,16); box(10400,14250,10560,14450,896,910,P_.champ);
 rbox(10330,13825,10750,14245,160,440,50,linen); for (const [x,y] of [[10365,13860],[10715,13860],[10365,14210],[10715,14210]]) cyl(x,y,14,0,160,black,8);
 cabinet2(11890,14360,12890,14860,'S',2,2770,2300);
 decoShelf(NX0, 13310, NX1, 13710);
@@ -1814,7 +1829,7 @@ box(5735, 11975, 5755, 11990, 950, 1250, X.dark); box(5786, 11975, 5806, 11990, 
   box(480, 2950, 950, 3380, 899, 903, X.chrome); cyl(718, 1780, 140, 900, 906, X.dark, 24);
   box(440, 1500, 1000, 2060, 1900, 1960, X.dark); box(520, 1580, 920, 1980, 1960, 2200, X.dark); cyl(718, 1780, 110, 2200, 4900, X.dark, 20);   // вытяжка над грилем и труба через кровлю
   for (const [x0, s] of [[1873, 1], [5312, -1]]) {
-    box(x0, 570, x0 + 1026, 2598, 60, 330, X.teak); box(x0 + 60, 630, x0 + 966, 2538, 0, 60, X.dark);
+    box(x0, 570, x0 + 1026, 2598, 0, 330, X.teak);
     for (const y of [600, 1600]) rbox(x0 + (s > 0 ? 230 : 30), y, x0 + (s > 0 ? 996 : 796), y + 970, 330, 480, 80, X.fab2);
     box(s > 0 ? x0 : x0 + 966, 570, s > 0 ? x0 + 60 : x0 + 1026, 2598, 330, 760, X.teak);
     for (const y of [620, 1620]) rbox(s > 0 ? x0 + 60 : x0 + 766, y, s > 0 ? x0 + 260 : x0 + 966, y + 930, 480, 760, 60, X.fab);
@@ -1989,6 +2004,7 @@ ROOF.visible = false;
 function setClad(v) { cladOn = v; for (const m of cladMeshes) m.material = v ? cladHi : X.wallUp; CLAD.visible = v || ROOF.visible; const b = document.getElementById('cladBtn'); if (b) b.textContent = v ? 'Зашивка над кухней: показана' : 'Зашивка над кухней: скрыта'; }
 function setRoof(v) { ROOF.visible = v; UPW.visible = !v && !(typeof low !== 'undefined' && low); CLAD.visible = v || cladOn; const b = document.getElementById('roofBtn'); if (b) b.textContent = v ? 'Крыша: показана' : 'Крыша: скрыта'; }
 
+full(box(390, 10735, 6432, 10741, 2765, 2773, X.dark));   // теневой шов между фасадами кухни и зашивкой
 for (const [a, b] of [[8528, 8540], [9020, 9032]]) { full(box(a, 10750, b, 11070, 0, 310, X.dark)); full(box(a - 2, 10775, b + 2, 11045, 20, 285, mat(0x8a8178, { roughness: .5 }))); }
 
 // ---------- стены в полный рост, под курсором опускаются: вырез в шейдере вдоль линии взгляда от камеры к точке под курсором
