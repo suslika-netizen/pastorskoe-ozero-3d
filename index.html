@@ -9,10 +9,10 @@ html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:14px/1
 h1{font-size:15px;margin:0 10px 0 0;background:#fffc;padding:6px 10px;border-radius:8px}
 button{font:inherit;padding:6px 10px;border:1px solid var(--line);background:#fff;border-radius:8px;cursor:pointer}button:hover{background:#f4f0ea}
 .hint{position:fixed;left:12px;bottom:12px;right:12px;width:fit-content;background:#fffc;padding:6px 10px;border-radius:8px;font-size:12px;color:#6b655e}
-</style></head><body>
+.bar{left:4px;right:4px;top:4px;gap:3px}.bar #views{gap:3px!important}.bar button,.bar select{font-size:11px!important;line-height:1.2!important;padding:3px 6px!important;border-radius:6px!important;background:#ffffffd9;height:auto!important;min-height:0!important;margin:0!important}@media (max-width:760px){.bar{left:2px;right:2px;top:2px;gap:2px}.bar #views{gap:2px!important}.bar button,.bar select{font-size:9.5px!important;padding:2px 4px!important;border-radius:5px!important}}</style></head><body>
 <div id="view"></div>
-<div class="bar"><h1>Пасторское озеро · дом целиком · эскиз планировки</h1><span id="views" style="display:flex;flex-wrap:wrap;gap:6px"></span><button id="fsBtn">На весь экран</button><button id="cladBtn">Зашивка над кухней: показана</button><button id="roofBtn">Крыша: скрыта</button><button id="lblBtn">Подписи</button><button id="low">Опустить стены</button><button id="shot">Сохранить картинку</button></div>
-<div class="hint">Эскиз планировки, мебель условная и ещё может меняться. Наведите курсор или коснитесь — стена перед этим местом опустится. Крутить — один палец или левая кнопка · сдвигать — два пальца или правая · масштаб — щипок или колесо.</div>
+<div class="bar"><span id="views" style="display:flex;flex-wrap:wrap;gap:6px"></span><button id="fsBtn">На весь экран</button><button id="cladBtn">Зашивка над кухней: показана</button><button id="roofBtn">Крыша: скрыта</button><button id="lblBtn">Подписи</button><button id="low">Опустить стены</button><button id="shot">Сохранить картинку</button></div>
+
 <script>/**
  * @license
  * Copyright 2010-2021 Three.js Authors
@@ -1233,6 +1233,8 @@ const P_ = {
   boxF: mat(0xcfc4b3, { roughness: 1 }),
 };
 const CLOTH = [0xf2efe9, 0xd9c7ad, 0xb08d6a, 0x8d8f93, 0x2f3542, 0xe6d3cf, 0x4a4643, 0xc9d2d6, 0x6f7f6a, 0xfaf8f4, 0x9a7b62, 0x1f1f22].map(c => mat(c, { roughness: 1 }));
+// состав секций по месту: 0 — длинные вещи и обувь, 1 — две штанги, 2 — штанга и ящики
+const WKIND = { '6740,13860': [0, 2, 1], '9390,15355': [1] };
 function wardrobe(x0, y0, x1, y1, f, doors, h, lowEnd) {
   const L = local(x0, y0, x1, y1, f), W = (f === 'N' || f === 'S') ? x1 - x0 : y1 - y0, D = (f === 'N' || f === 'S') ? y1 - y0 : x1 - x0;
   const R = (a0, b0, a1, b1) => L(a0 / W, b0 / D, a1 / W, b1 / D);     // мм вдоль фронта / вглубь от фронта
@@ -1255,8 +1257,9 @@ function wardrobe(x0, y0, x1, y1, f, doors, h, lowEnd) {
   const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
   for (let i = 0; i <= n; i++) { const a = Math.min(W - 25, Math.max(0, i * w - 12)); box(...R(a, 0, a + 25, D - 18), 0, lowEnd && (i === 0 || i === n) ? 1000 : h, P_.elm); }
   box(...R(0, 20, W, D - 18), 0, 80, P_.elmD);
+  if (lowEnd) for (const a of [14, W - 34]) box(...R(a, D / 2 - 10, a + 20, D / 2 + 10), 1000, 2092, P_.champ);   // стойки держат штангу и полку
   for (let i = 0; i < n; i++) {
-    const a0 = i * w + 14, a1 = (i + 1) * w - 14, kind = (i + (x0 > 9000 ? 1 : 0)) % 3;
+    const a0 = i * w + 14, a1 = (i + 1) * w - 14, kind = (WKIND[x0 + ',' + y0] || [])[i] ?? (i + (x0 > 9000 ? 1 : 0)) % 3;
     box(...R(a0, 10, a1, D - 18), 2080, 2092, P_.glassSh);                               // верхняя полка, стекло
     if (rnd() > .45) { const a = a0 + 60 + rnd() * Math.max(0, a1 - a0 - 420); box(...R(a, 80, a + 300, D - 80), 2092, 2092 + 200, P_.boxF); }   // коробки наверху
     const rail = (z, len0, len1) => {
@@ -1543,14 +1546,20 @@ function decoShelf(x0, y0, x1, y1) {
   cyl((V[0] + V[1]) / 2, (y0 + y1) / 2 - 10, 70, 1722, 1900, bk, 16);
 }
 openCloset(12390, 11960, 12890, 13140);
-box(10290,13410,10740,14660,0,380,P_.elmD); rbox(10300,13420,10730,14650,380,450,40,linen); box(10290,13560,10302,14510,100,2400,P_.champ); box(10302,13580,10308,14490,120,2380,mirrorM);
+// прихожая слева: зеркало с подсветкой, перед ним консоль на тонких ножках с ящиком во всю ширину зеркала, пуф задвинут под консоль
+box(10290,13560,10302,14510,100,2400,P_.champ); box(10302,13580,10308,14490,120,2380,mirrorM);
+{ const led = new THREE.MeshBasicMaterial({ color: 0xffe2b0 }); box(10290,13535,10300,13558,100,2400,led); box(10290,14512,10300,14535,100,2400,led); }
+for (const [x,y] of [[10330,13575],[10610,13575],[10330,14495],[10610,14495]]) cyl(x,y,11,0,760,black,8);
+box(10312,13555,10632,14515,760,880,P_.elmD); box(10306,13549,10638,14521,880,896,P_.elmD); box(10632,13575,10636,14495,775,865,P_.elm);
+cyl(10470,13760,60,896,1060,P_.lacq,16); box(10400,14180,10560,14380,896,910,P_.champ);
+rbox(10330,13825,10750,14245,160,440,50,linen); for (const [x,y] of [[10365,13860],[10715,13860],[10365,14210],[10715,14210]]) cyl(x,y,14,0,160,black,8);
 cabinet2(11890,14360,12890,14860,'S',2,2770,2300);
 decoShelf(NX0, 13310, NX1, 13710);
 }
 
 // ===== 4 Гардероб
 {
-box(11010,17150,11710,18355,0,3,mat(0x8a7f72));  // люк погреба
+{ const k = mat(0x4a3f35); for (const [a,b,c,d] of [[11010,17150,11710,17150+10],[11010,18355-10,11710,18355],[11010,17150,11010+10,18355],[11710-10,17150,11710,18355]]) box(a,b,c,d,0,3,k); box((11010+11710)/2-60,17150+70,(11010+11710)/2+60,17150+90,0,4,k); }  // люк погреба: контур в паркете
 wardrobe(10290,15060,10890,16200,'E',0,2700);
 wardrobe(10290,17100,10890,20110,'E',0,2700);
 wardrobe(11940,15060,12540,15690,'W',0,2700);
@@ -1803,8 +1812,9 @@ box(5735, 11975, 5755, 11990, 950, 1250, X.dark); box(5786, 11975, 5806, 11990, 
 {
   box(406, 1456, 1031, 3456, 0, 860, X.dark); box(406, 1456, 1041, 3456, 860, 900, X.stone);
   box(480, 2950, 950, 3380, 899, 903, X.chrome); cyl(718, 1780, 140, 900, 906, X.dark, 24);
+  box(440, 1500, 1000, 2060, 1900, 1960, X.dark); box(520, 1580, 920, 1980, 1960, 2200, X.dark); cyl(718, 1780, 110, 2200, 4900, X.dark, 20);   // вытяжка над грилем и труба через кровлю
   for (const [x0, s] of [[1873, 1], [5312, -1]]) {
-    box(x0, 570, x0 + 1026, 2598, 150, 330, X.teak);
+    box(x0, 570, x0 + 1026, 2598, 60, 330, X.teak); box(x0 + 60, 630, x0 + 966, 2538, 0, 60, X.dark);
     for (const y of [600, 1600]) rbox(x0 + (s > 0 ? 230 : 30), y, x0 + (s > 0 ? 996 : 796), y + 970, 330, 480, 80, X.fab2);
     box(s > 0 ? x0 : x0 + 966, 570, s > 0 ? x0 + 60 : x0 + 1026, 2598, 330, 760, X.teak);
     for (const y of [620, 1620]) rbox(s > 0 ? x0 + 60 : x0 + 766, y, s > 0 ? x0 + 260 : x0 + 966, y + 930, 480, 760, 60, X.fab);
@@ -1817,7 +1827,8 @@ box(5735, 11975, 5755, 11990, 950, 1250, X.dark); box(5786, 11975, 5806, 11990, 
 // ---------- крыша, фронтоны, остекление террасы и крылец (включается кнопкой «Крыша»)
 const ROOF = new THREE.Group(); scene.add(ROOF);
 const CLAD = new THREE.Group(); scene.add(CLAD); CLAD.visible = false; const cladMeshes = []; let cladOn = false;
-const cladHi = new THREE.MeshStandardMaterial({ color: 0xe0913f, transparent: true, opacity: .62, side: THREE.DoubleSide, roughness: .8 });
+const cladEdge = new THREE.LineBasicMaterial({ color: 0x8c7b66 });
+const cladHi = new THREE.MeshStandardMaterial({ color: 0xdcd2c2, transparent: true, opacity: .9, side: THREE.DoubleSide, roughness: .8 });   // зашивка: в цвет стен, чуть прозрачная, с контуром
 const RH = 5735, TL = 2225 / 5270, TR = 2225 / 6165, CEIL = 680;   // верх конька +5,735 (фасады АР); чистый потолок под кровлей ниже верха кровли примерно на 680 (разрез 1-1: +3,3 у стен, +5,07 под коньком)
 function roofZ(x, y) {
   let z = -1e9;
@@ -1871,6 +1882,13 @@ for (const r of [[-40, 1450, 390, 20540], [390, 20110, 15850, 20540], [15450, 18
 // над выходом на террасу: перемычка и трапециевидное окно ПР-1.2
 upTo(5110, 3480, 7710, 3960, 4400, X.wallUp, 400); box(5110, 3480, 7710, 3960, 2840, 2960, wallM, ROOF); upTo(5110, 3700, 7710, 3740, 2960, X.glass, 1300, false);
 upTo(5110, 3690, 5170, 3750, 2960, X.frame, 1300); upTo(7650, 3690, 7710, 3750, 2960, X.frame, 1300);
+// стены до чистого потолка под скатами (видны всегда, пока крыша скрыта): кухня-гостиная 12 и кабинет 3. В остальных помещениях потолок плоский +3,020 — стены 3000
+const UPW = new THREE.Group(); scene.add(UPW);
+{ const up2 = (...a) => { const m = upTo(...a); ROOF.remove(m); UPW.add(m); return m; };
+  for (const r of [[-40, 3480, 390, 11960], [390, 3480, 5110, 3960], [7710, 3480, 9020, 3960], [8540, 3960, 9020, 11960], [390, 11640, 8540, 11960],
+    [12760, 10040, 17020, 10460], [12760, 10460, 13190, 14760], [12760, 14760, 17020, 15060], [16540, 10460, 17020, 14760]]) up2(r[0], r[1], r[2], r[3], 3000, X.wallUp, CEIL);
+  up2(5110, 3480, 7710, 3960, 4400, X.wallUp, CEIL); box(5110, 3480, 7710, 3960, 2840, 2960, X.wallUp, UPW); up2(5110, 3700, 7710, 3740, 2960, X.glass, 1300, false);
+  up2(5110, 3690, 5170, 3750, 2960, X.frame, 1300); up2(7650, 3690, 7710, 3750, 2960, X.frame, 1300); }
 // чердачное перекрытие (плоский потолок +3,020) над жилой частью — по плану чердачного перекрытия АР
 for (const r of [[390, 11960, 12760, 20110], [12760, 15060, 16540, 17650], [12760, 17650, 15450, 20110]]) { const c = box(r[0], r[1], r[2], r[3], 3020, 3270, mat(0xf1eee8, { roughness: .9 }), ROOF); c.castShadow = false; }
 // чистый потолок по скатам: кухня-гостиная, терраса, кабинет (отделка деревом, как на картинках заказчицы)
@@ -1880,12 +1898,12 @@ for (const r of [[390, 11960, 12760, 20110], [12760, 15060, 16540, 17650], [1276
 // зашивка над кухней и ТВ-зоной до кровли: над кашемиром — кашемир, над орехом и витриной — орех, над витриной ТВ-зоны — рейки
 { const cashU = mat(0xd8cdbd, { roughness: .6, side: THREE.DoubleSide }), walU = mat(0x7a5236, { roughness: .55, side: THREE.DoubleSide });
   // над кухней (верх +2,770, как у окон) — зашивка в цвет стены, в плоскости фасадов
-  for (const m of [upTo(390, 10740, 6432, 11640, 2770, X.wallUp), upTo(6440, 10640, 6740, 11640, 3000, X.wallUp, 400)]) { ROOF.remove(m); CLAD.add(m); cladMeshes.push(m); }
+  for (const m of [upTo(390, 10740, 6432, 11640, 2770, X.wallUp), upTo(6440, 10640, 6740, 11640, 3000, X.wallUp, 400)]) { ROOF.remove(m); CLAD.add(m); cladMeshes.push(m); const ed = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry, 30), cladEdge); CLAD.add(ed); }
   upTo(390, 4993, 415, 6583, 2770, cashU); upTo(390, 4075, 820, 4875, 2770, cashU);
   for (const [a, b, d] of [[3960, 4075, 800], [4875, 4990, 800], [6583, 6742, 440]]) for (let y = a; y < b - 5; y += 30) upTo(390, y, d + (Math.round(y / 30) % 2) * 22, y + 22, 2770, walU); }
 // терраса: столбы, остекление в пол до кровли
 for (const r of [[50, 100, 350, 700], [8550, 100, 8850, 700], [3228, 100, 3428, 300], [5425, 100, 5625, 300], [8550, 3180, 8850, 3480]]) { upTo(r[0], r[1], r[2], r[3], 3000, X.slat); full(box(r[0] - 8, r[1] - 8, r[2] + 8, r[3] + 8, GL, 3000, X.slat)); }
-upTo(350, 190, 8550, 210, 0, X.glass, CEIL, false); upTo(8690, 700, 8710, 3180, 0, X.glass, 400, false);
+upTo(350, 190, 8550, 210, 0, X.glass, CEIL, false); upTo(8690, 700, 8710, 3180, 0, X.glass, 400, false); upTo(190, 700, 210, 1450, 0, X.glass, 400, false); box(170, 700, 230, 1450, 2700, 2780, X.frame, ROOF);
 for (const x of [1310, 2270, 4330, 6600, 7575]) upTo(x - 30, 170, x + 30, 230, 0, X.frame);
 for (const y of [1525, 2350]) upTo(8670, y - 30, 8730, y + 30, 0, X.frame);
 box(350, 170, 8550, 230, 2700, 2780, X.frame, ROOF); box(8670, 700, 8730, 3180, 2700, 2780, X.frame, ROOF);
@@ -1969,20 +1987,22 @@ for (const y of [19225, 20390]) full(box(16970, y - 30, 17030, y + 30, 0, 2860, 
 }
 ROOF.visible = false;
 function setClad(v) { cladOn = v; for (const m of cladMeshes) m.material = v ? cladHi : X.wallUp; CLAD.visible = v || ROOF.visible; const b = document.getElementById('cladBtn'); if (b) b.textContent = v ? 'Зашивка над кухней: показана' : 'Зашивка над кухней: скрыта'; }
-function setRoof(v) { ROOF.visible = v; CLAD.visible = v || cladOn; const b = document.getElementById('roofBtn'); if (b) b.textContent = v ? 'Крыша: показана' : 'Крыша: скрыта'; }
+function setRoof(v) { ROOF.visible = v; UPW.visible = !v && !(typeof low !== 'undefined' && low); CLAD.visible = v || cladOn; const b = document.getElementById('roofBtn'); if (b) b.textContent = v ? 'Крыша: показана' : 'Крыша: скрыта'; }
+
+for (const [a, b] of [[8528, 8540], [9020, 9032]]) { full(box(a, 10750, b, 11070, 0, 310, X.dark)); full(box(a - 2, 10775, b + 2, 11045, 20, 285, mat(0x8a8178, { roughness: .5 }))); }
 
 // ---------- стены в полный рост, под курсором опускаются: вырез в шейдере вдоль линии взгляда от камеры к точке под курсором
 const CUT = { uP: { value: new THREE.Vector3(0, 0, 0) }, uC: { value: new THREE.Vector3() }, uK: { value: 0 } };
 function cutPatch(m) { if (m.userData.cut) return m; m.userData.cut = true; m.onBeforeCompile = sh => { sh.uniforms.uP = CUT.uP; sh.uniforms.uC = CUT.uC; sh.uniforms.uK = CUT.uK;
   sh.vertexShader = 'varying vec3 vWP;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vWP = (modelMatrix * vec4(transformed, 1.0)).xyz;');
-  sh.fragmentShader = 'varying vec3 vWP; uniform vec3 uP; uniform vec3 uC; uniform float uK;\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n if (uK > 0.5 && vWP.y > 1.0) { vec2 d = uC.xz - uP.xz; float t = clamp(dot(vWP.xz - uP.xz, d) / max(dot(d, d), 0.0001), 0.0, 1.0); if (distance(vWP.xz, uP.xz + d * t) < 1.9 && mix(uP.y, uC.y, t) < 3.4) discard; }'); }; m.needsUpdate = true; return m; }
+  sh.fragmentShader = 'varying vec3 vWP; uniform vec3 uP; uniform vec3 uC; uniform float uK;\n' + sh.fragmentShader.replace('void main() {', 'void main() {\n if (uK > 0.5 && vWP.y > 0.03) { vec2 d = uC.xz - uP.xz; float t = clamp(dot(vWP.xz - uP.xz, d) / max(dot(d, d), 0.0001), 0.0, 1.0); if (distance(vWP.xz, uP.xz + d * t) < 3.8 && mix(uP.y, uC.y, t) < 6.5) discard; }'); }; m.needsUpdate = true; return m; }
 { const cache = new Map(); const cm = m => { if (!cache.has(m)) cache.set(m, cutPatch(m.clone())); return cache.get(m); };
-  for (const o of [...wallMeshes, ...OPEN]) if (o.material && !Array.isArray(o.material)) o.material = cm(o.material);
-  cutPatch(cladHi); cutPatch(X.wallUp);
+  for (const o of new Set([...wallMeshes, ...OPEN])) if (o.material && !Array.isArray(o.material) && !o.material.userData.cut) o.material = cm(o.material);
+  cutPatch(cladHi); cutPatch(cladEdge); cutPatch(X.wallUp); cutPatch(X.frame);
   const dom = renderer.domElement, ray = new THREE.Raycaster(), tgt = new THREE.Vector3(), pl = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), dir = new THREE.Vector3(); let has = false, on = true;
   const aim = e => { const r = dom.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2((e.clientX - r.left) / r.width * 2 - 1, -(e.clientY - r.top) / r.height * 2 + 1), camera); const hit = ray.ray.intersectPlane(pl, tgt); has = !!hit && tgt.distanceTo(camera.position) < 80; };
   dom.addEventListener('pointermove', e => { if (e.pointerType === 'mouse' && e.buttons) return; aim(e); }); dom.addEventListener('pointerdown', aim); dom.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') has = false; });
-  const b = document.createElement('button'); b.id = 'cutBtn'; b.textContent = 'Стены под курсором: опускаются'; b.onclick = () => { on = !on; b.textContent = on ? 'Стены под курсором: опускаются' : 'Стены под курсором: стоят'; }; document.getElementById('low').after(b);
+  const b = document.createElement('button'); b.id = 'cutBtn'; b.textContent = 'Стены у курсора: прячутся'; b.onclick = () => { on = !on; b.textContent = on ? 'Стены у курсора: прячутся' : 'Стены у курсора: стоят'; }; document.getElementById('low').after(b);
   (function tick() { requestAnimationFrame(tick); CUT.uC.value.copy(camera.position); if (has) CUT.uP.value.lerp(tgt, .22); camera.getWorldDirection(dir); CUT.uK.value = (on && has && !ROOF.visible && !low && dir.y > -0.93) ? 1 : 0; })();
 }
 
@@ -2012,7 +2032,7 @@ for (const l of LABELS) {
   ROOMVIEW[l.name] = [[M(cx - s * .25), M(Math.max(5500, s * 1.6)), -M(cy - s * .75)], [M(cx), 0, -M(cy)]];
 }
 let low = false;
-function setLow(v) { low = v; CLAD.visible = !v && (cladOn || ROOF.visible); for (const o of OPEN) { if (o.userData.minY === undefined) { o.geometry.computeBoundingBox(); o.userData.minY = o.geometry.boundingBox.min.y + o.position.y; } o.visible = !(v && o.userData.minY > 1.3); } for (const m of wallMeshes) { m.scale.y = v ? 0.4 : 1; m.position.y = m.userData.y0 === undefined ? (m.userData.y0 = m.position.y) * (v ? .4 : 1) : m.userData.y0 * (v ? .4 : 1); } document.getElementById('low').textContent = v ? 'Стены в полную высоту' : 'Опустить стены'; }
+function setLow(v) { low = v; UPW.visible = !v && !ROOF.visible; CLAD.visible = !v && (cladOn || ROOF.visible); for (const o of OPEN) { if (o.userData.minY === undefined) { o.geometry.computeBoundingBox(); o.userData.minY = o.geometry.boundingBox.min.y + o.position.y; } o.visible = !(v && o.userData.minY > 1.3); } for (const m of wallMeshes) { m.scale.y = v ? 0.4 : 1; m.position.y = m.userData.y0 === undefined ? (m.userData.y0 = m.position.y) * (v ? .4 : 1) : m.userData.y0 * (v ? .4 : 1); } document.getElementById('low').textContent = v ? 'Стены в полную высоту' : 'Опустить стены'; }
 function go(p, t, lowWalls) { setLow(lowWalls); const k = camera.aspect < 1 ? Math.min(2.4, 1 / camera.aspect) : 1; camera.position.set(t[0] + (p[0] - t[0]) * k, t[1] + (p[1] - t[1]) * k, t[2] + (p[2] - t[2]) * k); controls.target.set(...t); controls.update(); }
 function setView(n) { const v = VIEWS[n] || ROOMVIEW[n]; const ext = n === 'Снаружи', room = !!ROOMVIEW[n] && !VIEWS[n]; setRoof(ext); if (!window.__sun0) window.__sun0 = sun.position.clone(); if (n === 'План') sun.position.set(M(6500), 40, -M(9800) + 3); else sun.position.copy(window.__sun0); camera.fov = n === 'План' ? 6.5 : 45; camera.near = n === 'План' ? 150 : 0.05; camera.far = n === 'План' ? 300 : 200; camera.updateProjectionMatrix(); go(v[0], v[1], room); }
 const bar = document.getElementById('views');
