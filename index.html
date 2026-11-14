@@ -2031,18 +2031,4 @@ function resize() { const el = document.getElementById('view'); const w = el.cli
 window.addEventListener('resize', resize); resize(); setView('Весь дом'); setClad(true);
 (function loop() { requestAnimationFrame(loop); controls.update(); renderer.render(scene, camera); })();
 window.setView = setView; window.__ready = true;
-</script><script>/* Refresh only when a newly published model is available. */
-(()=>{
- const version='4c009585a0ab1b817c97b2b217b440209399e3e811c1afc81e7f705b012ca94e', key='pastorskoe-view:'+location.pathname;
- try{const v=JSON.parse(sessionStorage.getItem(key)||'null');if(v){setLow(v.low);setRoof(v.roof);if(typeof setClad==='function')setClad(v.clad);camera.position.fromArray(v.p);controls.target.fromArray(v.t);camera.updateProjectionMatrix();controls.update();sessionStorage.removeItem(key);}}catch(e){}
- let busy=false;
- async function check(){if(document.hidden||busy)return;busy=true;try{
- const r=await fetch('version.json?t='+Date.now(),{cache:'no-store',credentials:'omit'});if(!r.ok)return;const v=await r.json();
- if(v.version && /^[a-f0-9]{64}$/.test(v.version) && v.version!==version){
- try{sessionStorage.setItem(key,JSON.stringify({p:camera.position.toArray(),t:controls.target.toArray(),low:low,roof:ROOF.visible,clad:cladOn}));}catch(e){}
- location.replace(location.pathname+'?v='+v.version+location.hash);
- }
- }catch(e){}finally{busy=false;}}
- setInterval(check,60000);document.addEventListener('visibilitychange',check);check();
-})();
 </script></body></html>
